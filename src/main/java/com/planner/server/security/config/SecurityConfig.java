@@ -63,7 +63,8 @@ public class SecurityConfig {
             .antMatchers("/api/social-login/**", "/api/login", "/api/user/one")
             .permitAll()
             .antMatchers("/api/**")
-            .access("hasRole('ROLE_USER')")
+            .permitAll() // client에서 test를 위함
+            // .access("hasRole('ROLE_USER')")
             .anyRequest().permitAll();
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
