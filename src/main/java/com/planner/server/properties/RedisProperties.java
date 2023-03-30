@@ -13,13 +13,13 @@ public class RedisProperties {
         this.host = host;
     }
 
-    public static String getHost() {
-        return host;
-    }
-
     @Value("${spring.redis.port}")
     private void setPort(int port) {
         this.port = port;
+    }
+
+    public static String getHost() {
+        return host;
     }
 
     public static int getPort() {
