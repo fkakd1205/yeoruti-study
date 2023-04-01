@@ -1,11 +1,14 @@
 package com.planner.server.domain.room_chat.entity;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import javax.persistence.Id;
 
-import org.springframework.data.redis.core.RedisHash;
+import org.hibernate.annotations.Type;
+import org.springframework.data.redis.core.TimeToLive;
 import org.springframework.data.redis.core.index.Indexed;
 
 import lombok.AllArgsConstructor;
@@ -17,14 +20,25 @@ import lombok.ToString;
 @Getter
 @Builder
 @ToString
-@RedisHash(value = "chat", timeToLive = 10)
 @AllArgsConstructor
 @NoArgsConstructor
-public class RoomChat {
+public class RoomChat implements Serializable {
     @Id
+
+    @Type(type = "uuid-char")
     private UUID id;
+
     private String content;
+
     @Indexed
+    @Type(type = "uuid-char")
     private UUID studyRoomId;
+
     private LocalDateTime createdAt;
+
+    @Type(type = "uuid-char")
+    private UUID userId;
+
+    @TimeToLive(unit = TimeUnit.SECONDS)
+    private long expired = 5;
 }

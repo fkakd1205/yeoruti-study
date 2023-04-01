@@ -21,6 +21,7 @@ public class RoomChatResDto {
     private String content;
     private UUID roomId;
     private LocalDateTime createdAt;
+    private UUID userId;
 
     public static RoomChatResDto toDto(RoomChat entity) {
         RoomChatResDto dto = RoomChatResDto.builder()
@@ -28,6 +29,7 @@ public class RoomChatResDto {
             .content(entity.getContent())
             .roomId(entity.getStudyRoomId())
             .createdAt(entity.getCreatedAt())
+            .userId(entity.getUserId())
             .build();
 
         return dto;
