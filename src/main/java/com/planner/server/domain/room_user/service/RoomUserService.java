@@ -100,6 +100,7 @@ public class RoomUserService {
         }
     }
 
+    // TODO :: N+1문제 해결하기
     @Transactional(readOnly = true)
     public List<StudyRoomResDto> searchListJoinedStudyRoom() {
         UUID userId = SecurityContextHolderUtils.getUserId();
@@ -107,12 +108,13 @@ public class RoomUserService {
 
         if(userOpt.isPresent()) {
             List<RoomUser> roomUsers = roomUserRepository.findListJoinFetchUserByUserId(userOpt.get().getId());
-            List<RoomUserResDto> roomUserResDtos = roomUsers.stream().map(r -> RoomUserResDto.toDto(r)).collect(Collectors.toList());
-            List<StudyRoomResDto> studyRoomResDtos = roomUserResDtos.stream().map(r -> r.getStudyRoomDto()).collect(Collectors.toList());
+            // List<RoomUserResDto> roomUserResDtos = roomUsers.stream().map(r -> RoomUserResDto.toDto(r)).collect(Collectors.toList());
+            // List<StudyRoomResDto> studyRoomResDtos = roomUserResDtos.stream().map(r -> r.getStudyRoomDto()).collect(Collectors.toList());
+
+            List<StudyRoomResDto> studyRoomResDtos = roomUsers.stream().map(r -> StudyRoomResDto.toDto(r.getStudyRoom())).collect(Collectors.toList());
             return studyRoomResDtos;
         }else {
             throw new NullPointerException("존재하지 않는 데이터");
         }
-
     }
 }

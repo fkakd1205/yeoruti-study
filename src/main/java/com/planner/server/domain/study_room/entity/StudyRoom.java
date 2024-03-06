@@ -77,6 +77,7 @@ public class StudyRoom implements Serializable {
     private boolean hasRoomPassword;
 
     @OneToMany(mappedBy = "studyRoom")
+    @Builder.Default
     private List<RoomUser> roomUsers = new ArrayList<>();
 
     public void addRoomUser(RoomUser roomUser) {

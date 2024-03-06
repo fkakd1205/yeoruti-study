@@ -34,7 +34,7 @@ public class StudyRoomService {
 
     private final int DEFAULT_MAXIMUM_NUMBER_OF_PEOPLE = 30;
 
-    // 1. studyRoom생성, roomUser생성
+    // studyRoom생성 후 roomUser생성
     public void createStudyRoomAndRoomUser(StudyRoomReqDto.JoinStudyCategory studyRoomDto) {
         UUID userId = SecurityContextHolderUtils.getUserId();
         UUID studyCategoryId = studyRoomDto.getStudyCategoryId();
@@ -47,12 +47,13 @@ public class StudyRoomService {
         if(studyCategoryOpt.isPresent() && userOpt.isPresent()) {
             // '스터디룸 비밀번호 여부'에 따라 '스터디룸 비밀번호' 설정
             String roomPassword = studyRoomDto.isHasRoomPassword() ? studyRoomDto.getRoomPassword() : null;
+            int maximumNumberOfRoomUsers = studyRoomDto.getMaximumNumberOfPeople() <= 0 ? DEFAULT_MAXIMUM_NUMBER_OF_PEOPLE : studyRoomDto.getMaximumNumberOfPeople();
 
-            // 2. study room 생성
+            // 2. study room 생성. 스터디룸을 생성하는 유저가 마스터 유저가 된다.
             newStudyRoom = StudyRoom.builder()
                 .id(UUID.randomUUID())
                 .name(studyRoomDto.getName())
-                .maximumNumberOfPeople(studyRoomDto.getMaximumNumberOfPeople() == 0 ? DEFAULT_MAXIMUM_NUMBER_OF_PEOPLE : studyRoomDto.getMaximumNumberOfPeople())
+                .maximumNumberOfPeople(maximumNumberOfRoomUsers)
                 .studyCategory(studyCategoryOpt.get())
                 .studyGoalTime(studyRoomDto.getStudyGoalTime())
                 .roomPassword(roomPassword)
@@ -60,27 +61,30 @@ public class StudyRoomService {
                 .createdAt(LocalDateTime.now())
                 .masterUserId(userId)
                 .build();
-
+                
+            // 3. room user 생성
+            RoomUser roomUser = RoomUser.builder()
+                .id(UUID.randomUUID())
+                .user(userOpt.get())
+                .studyRoom(newStudyRoom)
+                .build();
+            
+            // TODO :: 여기서 addRoomUser는 불필요한 작업이 아닌가?
+            newStudyRoom.addRoomUser(roomUser);
             studyRoomRepository.save(newStudyRoom);
+            roomUserRepository.save(roomUser);
         } else {
             throw new NullPointerException("존재하지 않는 데이터");
         }
-        
-        // 3. room user 생성
-        RoomUser roomUser = RoomUser.builder()
-            .id(UUID.randomUUID())
-            .user(userOpt.get())
-            .studyRoom(newStudyRoom)
-            .build();
-
-        roomUserRepository.save(roomUser);
     }
 
+    // TODO :: 리팩토링
     @Transactional(readOnly = true)
     public List<StudyRoomResDto.IncludesMasterUserInfo> searchAll() {
         List<StudyRoom> studyRooms = studyRoomRepository.findAllJoinFetchStudyCategory();
         List<StudyRoomResDto> studyRoomDtos = studyRooms.stream().map(entity -> StudyRoomResDto.toDto(entity)).collect(Collectors.toList());
 
+        // 스터디룸의 마스터 유저를 함께 조회
         List<UUID> masterUserIds = studyRoomDtos.stream().map(studyRoomDto -> studyRoomDto.getMasterUserId()).collect(Collectors.toList());
         List<User> users = userRepository.findListByIds(masterUserIds);
         
@@ -111,11 +115,15 @@ public class StudyRoomService {
         
         if(entityOpt.isPresent()) {
             StudyRoom entity = entityOpt.get();
+            
+            // 마스터 유저만 수정 가능
             if(!userId.equals(entity.getMasterUserId())) {
                 throw new RuntimeException("권한 거부");
             }
 
             UUID updatedStudyCategoryId = studyRoomDto.getStudyCategoryId();
+            int maximumNumberOfRoomUsers = studyRoomDto.getMaximumNumberOfPeople() == 0 ? DEFAULT_MAXIMUM_NUMBER_OF_PEOPLE : studyRoomDto.getMaximumNumberOfPeople();
+
             if(!entityOpt.get().getStudyCategory().getId().equals(updatedStudyCategoryId)){
                 Optional<StudyCategory> studyCategoryOpt = studyCategoryRepository.findById(updatedStudyCategoryId);
                 if(!studyCategoryOpt.isPresent()) {
@@ -126,7 +134,7 @@ public class StudyRoomService {
             }
             
             entity.setName(studyRoomDto.getName())
-                .setMaximumNumberOfPeople(studyRoomDto.getMaximumNumberOfPeople() == 0 ? DEFAULT_MAXIMUM_NUMBER_OF_PEOPLE : studyRoomDto.getMaximumNumberOfPeople())
+                .setMaximumNumberOfPeople(maximumNumberOfRoomUsers)
                 .setStudyGoalTime(studyRoomDto.getStudyGoalTime())
                 .setUpdatedAt(LocalDateTime.now());
         }else {
@@ -138,6 +146,7 @@ public class StudyRoomService {
         UUID userId = SecurityContextHolderUtils.getUserId();
         Optional<StudyRoom> entityOpt = studyRoomRepository.findById(studyRoomId);
 
+        // 마스터 유저만 스터디룸 제거 가능
         if(entityOpt.isPresent()) {
             if(!userId.equals(entityOpt.get().getMasterUserId())) {
                 throw new RuntimeException("권한 거부");
@@ -162,20 +171,23 @@ public class StudyRoomService {
     }
 
     // Room Password는 master user만이 변경할 수 있다
+    // 1. master user 확인을 위해 user 조회
+    // 2. master user id 와 user id 가 동일하다면 room password 변경 허락
+    // 3. 그렇지 않다면 room password 변경 거부
     public void changeRoomPassword(StudyRoomReqDto.ReqChangePassword studyRoomDto) {
+        // 1.
         UUID userId = SecurityContextHolderUtils.getUserId();
         Optional<StudyRoom> studyRoomOpt = studyRoomRepository.findById(studyRoomDto.getId());
         
         if(studyRoomOpt.isPresent()) {
             StudyRoom studyRoom = studyRoomOpt.get();
             
-            // 1. master user 확인을 위해 user 조회
-            // 2. master user id 와 user id 가 동일하다면 room password 변경 허락
-            // 3. 그렇지 않다면 room password 변경 거부
+            // 3.
             if(!userId.equals(studyRoom.getMasterUserId())) {
                 throw new RuntimeException("권한 거부");
             }
 
+            // 2.
             if(studyRoomDto.getRoomPassword() == null || studyRoomDto.getRoomPassword().isBlank()) {
                 studyRoom.setHasRoomPassword(false).setRoomPassword(null);
             }else {

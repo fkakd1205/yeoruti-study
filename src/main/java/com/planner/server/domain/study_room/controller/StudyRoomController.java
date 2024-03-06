@@ -129,7 +129,7 @@ public class StudyRoomController {
         return new ResponseEntity<>(message, message.getStatus());
     }
 
-    // 스터디룸 비밀번호 확인
+    // 스터디룸 입장 시 비밀번호 확인
     @PostMapping("/room-password/check")
     public ResponseEntity<?> checkRoomPassword(@RequestBody StudyRoomReqDto.ReqCheckRoomPassword studyRoomDto) {
         Message message = new Message();

@@ -48,6 +48,6 @@ public class StudyCategory implements Serializable {
     private String description;
 
     @OneToMany(mappedBy = "studyCategory")
+    @Builder.Default
     List<StudyRoom> studyRooms = new ArrayList<>();
-
 }
