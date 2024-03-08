@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.planner.server.domain.room_user.dto.RoomUserReqDto;
-import com.planner.server.domain.room_user.dto.RoomUserResDto;
 import com.planner.server.domain.room_user.entity.RoomUser;
 import com.planner.server.domain.room_user.repository.RoomUserRepository;
 import com.planner.server.domain.study_room.dto.StudyRoomResDto;
@@ -66,13 +65,12 @@ public class RoomUserService {
     
     // 가입 여부 확인
     public void checkDuplicationJoin(RoomUserReqDto roomUserDto) {
-        List<StudyRoomResDto> studyRoomDtos = this.searchListJoinedStudyRoom();
-        
-        studyRoomDtos.forEach(studyRoom -> {
-            if(studyRoom.getId().equals(roomUserDto.getStudyRoomId())) {
-                throw new RuntimeException("이미 가입한 스터디룸입니다.");
-            }
-        });
+        UUID userId = SecurityContextHolderUtils.getUserId();
+        Optional<RoomUser> entityOpt = roomUserRepository.findByUserIdAndStudyRoomId(userId, roomUserDto.getStudyRoomId());
+
+        if(entityOpt.isPresent()) {
+            throw new RuntimeException("이미 가입한 스터디룸입니다.");
+        }
     }
 
     public void deleteOne(UUID studyRoomId) {
@@ -100,7 +98,6 @@ public class RoomUserService {
         }
     }
 
-    // TODO :: N+1문제 해결하기
     @Transactional(readOnly = true)
     public List<StudyRoomResDto> searchListJoinedStudyRoom() {
         UUID userId = SecurityContextHolderUtils.getUserId();
@@ -108,9 +105,6 @@ public class RoomUserService {
 
         if(userOpt.isPresent()) {
             List<RoomUser> roomUsers = roomUserRepository.findListJoinFetchUserByUserId(userOpt.get().getId());
-            // List<RoomUserResDto> roomUserResDtos = roomUsers.stream().map(r -> RoomUserResDto.toDto(r)).collect(Collectors.toList());
-            // List<StudyRoomResDto> studyRoomResDtos = roomUserResDtos.stream().map(r -> r.getStudyRoomDto()).collect(Collectors.toList());
-
             List<StudyRoomResDto> studyRoomResDtos = roomUsers.stream().map(r -> StudyRoomResDto.toDto(r.getStudyRoom())).collect(Collectors.toList());
             return studyRoomResDtos;
         }else {

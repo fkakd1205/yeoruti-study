@@ -14,6 +14,5 @@ import lombok.ToString;
 @AllArgsConstructor
 @NoArgsConstructor
 public class RoomUserReqDto {
-    private UUID id;
     private UUID studyRoomId;
 }

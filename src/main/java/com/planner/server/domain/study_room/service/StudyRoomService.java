@@ -78,7 +78,6 @@ public class StudyRoomService {
         }
     }
 
-    // TODO :: 리팩토링
     @Transactional(readOnly = true)
     public List<StudyRoomResDto.IncludesMasterUserInfo> searchAll() {
         List<StudyRoom> studyRooms = studyRoomRepository.findAllJoinFetchStudyCategory();

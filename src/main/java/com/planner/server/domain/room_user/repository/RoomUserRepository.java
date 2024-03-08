@@ -15,7 +15,7 @@ import com.planner.server.domain.room_user.entity.RoomUser;
 public interface RoomUserRepository extends JpaRepository<RoomUser, Long> {
     Optional<RoomUser> findById(UUID id);
 
-    @Query("SELECT DISTINCT ru FROM RoomUser ru JOIN FETCH ru.user WHERE ru.user.id = :userId")
+    @Query("SELECT DISTINCT ru FROM RoomUser ru JOIN FETCH ru.studyRoom sr JOIN FETCH ru.user WHERE ru.user.id = :userId")
     List<RoomUser> findListJoinFetchUserByUserId(@Param("userId") UUID userId);
 
     @Query("SELECT DISTINCT ru FROM RoomUser ru JOIN FETCH ru.user WHERE ru.studyRoom.id = :studyRoomId")
